@@ -1,0 +1,14 @@
+dist/
+node_modules/
+.wrangler/
+.dev.vars
+worker-configuration.d.ts
+.env
+.env.local
+.vercel
+.next/
+frontend/.next/
+.next/cache/
+frontend/.next/cache/
+
+.vercel

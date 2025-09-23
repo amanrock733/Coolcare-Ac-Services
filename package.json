@@ -1,0 +1,36 @@
+{
+    "name": "coolcare-ac-services",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "dependencies": {
+        "@supabase/supabase-js": "^2.45.0",
+        "jose": "^5.9.3",
+        "lucide-react": "^0.510.0",
+        "next": "^14.2.17",
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
+        "zod": "^3.24.3"
+    },
+    "devDependencies": {
+        "@eslint/js": "8.57.0",
+        "@types/node": "20.12.12",
+        "@types/react": "18.2.67",
+        "@types/react-dom": "18.2.22",
+        "@typescript-eslint/eslint-plugin": "^7.18.0",
+        "@typescript-eslint/parser": "^7.18.0",
+        "autoprefixer": "^10.4.21",
+        "eslint": "8.57.0",
+        "eslint-config-next": "14.2.17",
+        "globals": "15.15.0",
+        "postcss": "^8.5.3",
+        "tailwindcss": "^3.4.17",
+        "typescript": "5.8.3"
+    },
+    "scripts": {
+        "lint": "next lint",
+        "build": "next build",
+        "dev": "next dev",
+        "start": "next start -p 3000"
+    }
+}
