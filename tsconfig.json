@@ -27,7 +27,7 @@
         "./src/*"
       ],
       "api/*": [
-        "./api/*"
+        "./src/server/api/*"
       ]
     },
     "incremental": true

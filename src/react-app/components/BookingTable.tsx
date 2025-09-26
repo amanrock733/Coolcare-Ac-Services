@@ -1,11 +1,12 @@
 "use client";
 import { useState } from 'react';
-import { Search, Filter, Eye, Calendar, Phone, MapPin, User } from 'lucide-react';
+import { Search, Filter, Eye, Calendar, Phone, MapPin, User, Download, FileText } from 'lucide-react';
 import { BookingType, BookingStatus } from '@/shared/types';
 
 interface BookingTableProps {
   bookings: BookingType[];
   onStatusUpdate: (id: number, status: string) => void;
+  globalSearchTerm?: string;
 }
 
 const statusColors = {
@@ -15,20 +16,23 @@ const statusColors = {
   [BookingStatus.CANCELLED]: 'bg-red-100 text-red-800 border-red-200'
 };
 
-export default function BookingTable({ bookings, onStatusUpdate }: BookingTableProps) {
+export default function BookingTable({ bookings, onStatusUpdate, globalSearchTerm }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<BookingType | null>(null);
 
   const filteredBookings = bookings.filter(booking => {
+    const term = globalSearchTerm !== undefined ? globalSearchTerm : searchTerm;
     const matchesSearch = 
-      booking.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customer_phone.includes(searchTerm) ||
-      booking.address.toLowerCase().includes(searchTerm.toLowerCase());
+      booking.customer_name.toLowerCase().includes(term.toLowerCase()) ||
+      booking.customer_phone.includes(term) ||
+      booking.address.toLowerCase().includes(term.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesDate = !dateFilter || booking.preferred_date === dateFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const formatDate = (dateString: string) => {
@@ -49,33 +53,99 @@ export default function BookingTable({ bookings, onStatusUpdate }: BookingTableP
     });
   };
 
+  const exportToCSV = () => {
+    const headers = [
+      'ID', 'Customer Name', 'Phone', 'Email', 'Service Type', 'AC Type',
+      'Address', 'Preferred Date', 'Preferred Time', 'Status', 'Created At'
+    ];
+    const rows = filteredBookings.map(b => [
+      b.id ?? '', b.customer_name, b.customer_phone, b.customer_email ?? '', b.service_type,
+      b.ac_type, b.address, b.preferred_date, b.preferred_time, b.status, b.created_at ?? ''
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(String)
+      .map(v => '"' + v.replace(/"/g, '""') + '"')
+      .join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bookings.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = () => {
+    const html = `
+      <html><head><title>Bookings</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
+        th { background: #f3f4f6; }
+      </style>
+      </head><body>
+      <h2>CoolCare AC Services - Bookings</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Customer</th><th>Phone</th><th>Service</th><th>AC Type</th>
+            <th>Date</th><th>Time</th><th>Status</th><th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredBookings.map(b => `
+            <tr>
+              <td>${b.id ?? ''}</td>
+              <td>${b.customer_name}</td>
+              <td>${b.customer_phone}</td>
+              <td>${b.service_type}</td>
+              <td>${b.ac_type}</td>
+              <td>${b.preferred_date}</td>
+              <td>${b.preferred_time}</td>
+              <td>${b.status}</td>
+              <td>${b.created_at ?? ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      </body></html>
+    `;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-lg overflow-hidden" id="bookings">
       {/* Header and Filters */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <h2 className="text-xl font-semibold text-gray-900">Booking Management</h2>
-          
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary" />
               <input
                 type="text"
                 placeholder="Search bookings..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 pl-11 pr-4 rounded-3xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent placeholder:text-gray-400"
               />
             </div>
 
             {/* Status Filter */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                className="h-11 pl-11 pr-10 rounded-3xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent appearance-none"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -84,6 +154,25 @@ export default function BookingTable({ bookings, onStatusUpdate }: BookingTableP
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
+
+            {/* Date Filter */}
+            <div>
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="h-11 px-4 rounded-3xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={exportToCSV} className="btn-outline">
+              <Download className="h-4 w-4" /> Export CSV
+            </button>
+            <button onClick={exportToPDF} className="btn-primary">
+              <FileText className="h-4 w-4" /> Export PDF
+            </button>
           </div>
         </div>
       </div>
